@@ -8,11 +8,7 @@
     }
   },
   "memory": {
-    "command": "/opt/homebrew/bin/npx",
-    "args": ["-y", "@modelcontextprotocol/server-memory"],
-    "env": {
-      "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
-      "MEMORY_FILE_PATH": "/Users/johnny/.server-memory/memory.json"
-    }
+    "type": "http",
+    "url": "https://mcp-server-memory-production.up.railway.app/mcp"
   }
 }

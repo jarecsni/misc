@@ -1,54 +1,34 @@
 #!/bin/bash
 
+CONFIG_PATH="$HOME/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
+MCP_PATH="$HOME/.xcode-behaviors/mcp-config.json"
+
 if [ -z "$1" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo ""
     echo "inject-mcps.sh — Inject MCP servers into Xcode Claude Agent config"
     echo ""
     echo "USAGE:"
-    echo "  inject-mcps.sh <project-path>"
+    echo "  inject-mcps.sh <project-path>   inject into a single project"
+    echo "  inject-mcps.sh --all            inject into all projects"
     echo ""
-    echo "EXAMPLE:"
-    echo "  inject-mcps.sh /Users/johnny/dev/TestApp"
-    echo ""
-    echo "HOW IT WORKS:"
-    echo "  Reads MCP server definitions from:"
-    echo "    ~/.xcode-behaviors/mcp-config.json"
-    echo "  Injects them into:"
-    echo "    ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
-    echo "  Creates the project entry if it doesn't exist yet."
-    echo ""
-    echo "STORING SECRETS IN KEYCHAIN:"
-    echo "  Tokens are never stored in files. Use placeholders in mcp-config.json:"
-    echo "    \"__KEYCHAIN:your-service-name__\""
-    echo "  Store the token once with:"
-    echo "    security add-generic-password -s \"your-service-name\" -a \"\$USER\" -w \"your-token\""
-    echo "  Retrieve it manually with:"
-    echo "    security find-generic-password -s \"your-service-name\" -w"
-    echo ""
-    echo "CURRENT MCP CONFIG:"
-    echo "  ~/.xcode-behaviors/mcp-config.json"
-    echo ""
-    if [ -z "$1" ]; then
-        echo "Error: project path required."
-        exit 1
-    fi
     exit 0
 fi
 
-export PROJECT_PATH="$1"
-export CONFIG_PATH="$HOME/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
-export MCP_PATH="$HOME/.xcode-behaviors/mcp-config.json"
+export PROJECT_ARG="$1"
+export CONFIG_PATH
+export MCP_PATH
 
 python3 << 'PYEOF'
 import json, os, re, subprocess
 
-project_path = os.environ["PROJECT_PATH"]
+project_arg = os.environ["PROJECT_ARG"]
 config_path = os.environ["CONFIG_PATH"]
 mcp_path = os.environ["MCP_PATH"]
 
 with open(mcp_path) as f:
     mcp_str = f.read()
 
+# resolve __KEYCHAIN:service-name__ placeholders
 for match in re.finditer(r'__KEYCHAIN:([^_]+)__', mcp_str):
     placeholder = match.group(0)
     service = match.group(1)
@@ -63,24 +43,31 @@ mcps = json.loads(mcp_str)
 with open(config_path) as f:
     config = json.load(f)
 
-if project_path not in config["projects"]:
-    print(f"Project '{project_path}' not found — creating entry...")
-    config["projects"][project_path] = {
-        "allowedTools": [],
-        "mcpContextUris": [],
-        "mcpServers": {},
-        "enabledMcpjsonServers": [],
-        "disabledMcpjsonServers": [],
-        "hasTrustDialogAccepted": False,
-        "projectOnboardingSeenCount": 0,
-        "hasClaudeMdExternalIncludesApproved": False,
-        "hasClaudeMdExternalIncludesWarningShown": False
-    }
-
-config["projects"][project_path]["mcpServers"].update(mcps)
+if project_arg == "--all":
+    targets = list(config["projects"].keys())
+    if not targets:
+        print("No projects found in config.")
+    for project_path in targets:
+        config["projects"][project_path].setdefault("mcpServers", {}).update(mcps)
+        print(f"MCPs injected into {project_path}")
+else:
+    project_path = project_arg
+    if project_path not in config["projects"]:
+        print(f"Project '{project_path}' not found — creating entry...")
+        config["projects"][project_path] = {
+            "allowedTools": [],
+            "mcpContextUris": [],
+            "mcpServers": {},
+            "enabledMcpjsonServers": [],
+            "disabledMcpjsonServers": [],
+            "hasTrustDialogAccepted": False,
+            "projectOnboardingSeenCount": 0,
+            "hasClaudeMdExternalIncludesApproved": False,
+            "hasClaudeMdExternalIncludesWarningShown": False
+        }
+    config["projects"][project_path].setdefault("mcpServers", {}).update(mcps)
+    print(f"MCPs injected into {project_path}")
 
 with open(config_path, "w") as f:
     json.dump(config, f, indent=2)
-
-print(f"MCPs injected into {project_path}")
 PYEOF

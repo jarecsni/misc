@@ -6,7 +6,7 @@ Provides a shared knowledge graph for all Claude surfaces.
 ## Endpoints
 
 - `/mcp` — Streamable HTTP (used by claude.ai and HTTP-mode clients)
-- `/sse` — SSE transport
+- `/healthz` — Health check
 
 ## Post-deploy steps (manual, separate from this spec)
 

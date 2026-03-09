@@ -1,6 +1,6 @@
 # MCP Memory Server — Railway Deployment
 
-Deploys `@modelcontextprotocol/server-memory` via `mcp-proxy` to Railway.
+Deploys `@modelcontextprotocol/server-memory` via `supergateway` to Railway.
 Provides a shared knowledge graph for all Claude surfaces.
 
 ## Endpoints
@@ -8,7 +8,19 @@ Provides a shared knowledge graph for all Claude surfaces.
 - `/mcp` — Streamable HTTP (used by claude.ai and HTTP-mode clients)
 - `/healthz` — Health check
 
-## Post-deploy steps (manual, separate from this spec)
+## Security
+
+Access is controlled via an unguessable public URL configured in Railway.
+The URL itself acts as a shared secret — do not share it or commit it to repos.
+
+Store the URL in macOS Keychain for local client config:
+
+```
+security add-generic-password -s "railway-mcp-url" -a "$USER" -w "<full-url>"
+security find-generic-password -s "railway-mcp-url" -a "$USER" -w
+```
+
+## Post-deploy steps (manual, separate from initial spec)
 
 1. Attach persistent volume in Railway dashboard → mount path `/data`
 2. Add custom domain `mcp-memory.textologylabs.ai` in Railway dashboard

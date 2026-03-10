@@ -28,7 +28,7 @@ mcp_path = os.environ["MCP_PATH"]
 with open(mcp_path) as f:
     mcp_str = f.read()
 
-# resolve __KEYCHAIN:service-name__ placeholders
+# Resolve __KEYCHAIN:service-name__ placeholders
 for match in re.finditer(r'__KEYCHAIN:([^_]+)__', mcp_str):
     placeholder = match.group(0)
     service = match.group(1)
@@ -36,7 +36,10 @@ for match in re.finditer(r'__KEYCHAIN:([^_]+)__', mcp_str):
         ["security", "find-generic-password", "-s", service, "-w"],
         capture_output=True, text=True
     )
-    mcp_str = mcp_str.replace(placeholder, result.stdout.strip())
+    if result.returncode != 0:
+        print(f"WARNING: Keychain entry '{service}' not found — placeholder left unresolved")
+    else:
+        mcp_str = mcp_str.replace(placeholder, result.stdout.strip())
 
 mcps = json.loads(mcp_str)
 
@@ -70,4 +73,3 @@ else:
 
 with open(config_path, "w") as f:
     json.dump(config, f, indent=2)
-PYEOF

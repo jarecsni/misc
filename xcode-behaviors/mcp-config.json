@@ -9,6 +9,6 @@
   },
   "memory": {
     "type": "http",
-    "url": "https://29f36e9c04feaac5eeabbf1cd16fdedc4memory-794688f8.up.railway.app/mcp"
+    "url": "__KEYCHAIN:claude-mcp-memory-url__"
   }
 }
